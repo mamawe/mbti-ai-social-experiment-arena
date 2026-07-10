@@ -1,0 +1,6 @@
+{
+  "name": "MBTI AI Social Experiment Arena",
+  "description": "基于 MBTI 的 16 种人格 AI 生存与决策社会模拟实验沙盘，支持高压会议决策，人际关系演化和导演上帝干预干涉。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
