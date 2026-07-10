@@ -39,6 +39,7 @@ export default function App() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>("louis");
   const [loading, setLoading] = useState<boolean>(false);
   const [apiMode, setApiMode] = useState<boolean>(false);
+  const [initError, setInitError] = useState<string | null>(null);
   
   // New States
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
@@ -359,6 +360,7 @@ export default function App() {
       setSelectedCharacterId("louis");
     } catch (err) {
       console.error("Failed to start session:", err);
+      setInitError("无法连接模拟后端（/api/simulation/start 无响应）。请确认已部署 API 函数，或点击重试。");
     } finally {
       setLoading(false);
     }
@@ -568,21 +570,31 @@ export default function App() {
   };
 
   if (!session) {
+    const isInitError = !!initError;
     return (
       <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 text-slate-100">
         <div className="flex flex-col items-center max-w-md text-center">
-          <div className="w-16 h-16 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30 animate-pulse mb-6">
-            <Cpu className="w-8 h-8 text-blue-500" />
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center border mb-6 ${isInitError ? "bg-red-600/20 border-red-500/30" : "bg-blue-600/20 border-blue-500/30 animate-pulse"}`}>
+            {isInitError ? <AlertTriangle className="w-8 h-8 text-red-500" /> : <Cpu className="w-8 h-8 text-blue-500" />}
           </div>
           <h1 className="text-2xl font-display font-semibold tracking-tight text-white mb-2">
-            正在初始化 AI 生存沙盘...
+            {isInitError ? "沙盘初始化失败" : "正在初始化 AI 生存沙盘..."}
           </h1>
           <p className="text-slate-400 text-sm mb-6">
-            系统正在构建“6 种 MBTI 人格”，注入世界状态机并分发社会关系底牌，请稍候。
+            {isInitError ? initError : "系统正在构建“6 种 MBTI 人格”，注入世界状态机并分发社会关系底牌，请稍候。"}
           </p>
-          <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-500 rounded-full animate-progress w-2/3"></div>
-          </div>
+          {isInitError ? (
+            <button
+              onClick={() => { setInitError(null); startNewSession(); }}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+            >
+              重试
+            </button>
+          ) : (
+            <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full animate-progress w-2/3"></div>
+            </div>
+          )}
         </div>
       </div>
     );
