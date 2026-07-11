@@ -642,6 +642,14 @@ function saveToHistory(session: GameSession) {
 
 // ---------------- Express Endpoints ----------------
 
+// Health check endpoint — used by external keep-alive pings (e.g. a
+// GitHub Actions cron) to stop Render's free tier from spinning down the
+// instance after 15 minutes of inactivity. Lightweight: does not touch
+// game state, so it is safe to hit every few minutes.
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), ts: Date.now() });
+});
+
 // 1. Get Session
 app.get("/api/simulation/session/:id", (req, res) => {
   const session = sessions[req.params.id];
