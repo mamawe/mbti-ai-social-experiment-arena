@@ -33,8 +33,7 @@ if (apiKey && apiKey !== "MY_GEMINI_API_KEY") {
   console.log("No GEMINI_API_KEY environment variable found. Falling back to rule-based simulation engine.");
 }
 
-// In-memory Session Database
-const sessions: Record<string, GameSession> = {};
+import { getSession, setSession } from "./src/sessionStore";
 
 // Helper: Generate Unique ID
 function generateId(): string {
@@ -213,7 +212,7 @@ function getInitialRelationships(): Relationship[] {
 }
 
 // Create New Session
-function createSession(): GameSession {
+async function createSession(): Promise<GameSession> {
   const sessionId = generateId();
   const session: GameSession = {
     id: sessionId,
@@ -271,7 +270,7 @@ function createSession(): GameSession {
     directorNotes: []
   };
 
-  sessions[sessionId] = session;
+  await setSession(sessionId, session);
   return session;
 }
 
@@ -651,8 +650,8 @@ app.get("/api/health", (_req, res) => {
 });
 
 // 1. Get Session
-app.get("/api/simulation/session/:id", (req, res) => {
-  const session = sessions[req.params.id];
+app.get("/api/simulation/session/:id", async (req, res) => {
+  const session = await getSession(req.params.id);
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
   }
@@ -660,15 +659,15 @@ app.get("/api/simulation/session/:id", (req, res) => {
 });
 
 // 2. Start Session
-app.post("/api/simulation/start", (req, res) => {
-  const session = createSession();
+app.post("/api/simulation/start", async (req, res) => {
+  const session = await createSession();
   res.json({ session, apiMode: !!ai });
 });
 
 // 3. Step Session
 app.post("/api/simulation/step", async (req, res) => {
   const { sessionId, customTopic } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
   
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
@@ -730,13 +729,14 @@ app.post("/api/simulation/step", async (req, res) => {
 
   evaluateEndConditions(session);
   saveToHistory(session);
+  await setSession(sessionId, session);
   res.json({ session });
 });
 
 // 4. Force Immediate Vote
 app.post("/api/simulation/vote", async (req, res) => {
   const { sessionId } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
 
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
@@ -818,13 +818,14 @@ app.post("/api/simulation/vote", async (req, res) => {
 
   evaluateEndConditions(session);
   saveToHistory(session);
+  await setSession(sessionId, session);
   res.json({ session });
 });
 
 // 4b. Character Psychological Analysis
 app.post("/api/simulation/character-analysis", async (req, res) => {
   const { sessionId, characterId } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
   }
@@ -890,9 +891,9 @@ ${recentDialogues}
 });
 
 // 4c. Save Director Notes
-app.post("/api/simulation/notes", (req, res) => {
+app.post("/api/simulation/notes", async (req, res) => {
   const { sessionId, notes } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
   }
@@ -900,13 +901,14 @@ app.post("/api/simulation/notes", (req, res) => {
   if (Array.isArray(notes)) {
     session.directorNotes = notes;
   }
+  await setSession(sessionId, session);
   res.json({ session });
 });
 
 // 5. Director Interventions
 app.post("/api/simulation/intervene", async (req, res) => {
   const { sessionId, type, payload } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
 
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
@@ -1005,17 +1007,19 @@ app.post("/api/simulation/intervene", async (req, res) => {
 
   evaluateEndConditions(session);
   saveToHistory(session);
+  await setSession(sessionId, session);
   res.json({ session });
 });
 
 // 6. Toggle God Mode / Secret Peeping
-app.post("/api/simulation/godmode", (req, res) => {
+app.post("/api/simulation/godmode", async (req, res) => {
   const { sessionId, enable } = req.body;
-  const session = sessions[sessionId];
+  const session = await getSession(sessionId);
   if (!session) {
     return res.status(404).json({ error: "Session not found." });
   }
   session.isGodMode = !!enable;
+  await setSession(sessionId, session);
   res.json({ session });
 });
 
